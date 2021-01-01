@@ -1,6 +1,7 @@
 package com.warren_r.sparkutils
 
 import java.io.File
+import com.warren_r.sparkutils.SnapshotFailures._
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.spark.SparkConf
 import org.apache.spark.sql._
@@ -13,15 +14,10 @@ import scala.reflect.io.Directory
 import scala.util.{Failure, Success, Try}
 
 trait SnapshotTest extends LazyLogging {
-  val sparkConf: SparkConf = new SparkConf()
-  val sparkSession: SparkSession = SparkSession
-    .builder
-    .master("local[*]")
-    .appName("RunningTests")
-    .config(sparkConf)
-    .getOrCreate()
-  implicit val sparkSessionImpl: SparkSession = sparkSession
-  implicit val sqlImpl: SQLContext = sparkSession.sqlContext
+  val sparkConf: SparkConf
+  val sparkSession: SparkSession
+  lazy implicit val sparkSessionImpl: SparkSession = sparkSession
+  lazy implicit val sqlImpl: SQLContext = sparkSession.sqlContext
 
   import sparkSession.sqlContext.implicits._
 
@@ -40,18 +36,12 @@ trait SnapshotTest extends LazyLogging {
     dataFrame.write.parquet(path)
   }
 
-  private[sparkutils] def compareSnapshot(newDF: DataFrame, snapshotDF: DataFrame, sortBy: List[String]): Boolean = {
+  private[sparkutils] def compareSnapshot(newDF: DataFrame, snapshotDF: DataFrame, sortBy: List[String]): Option[SnapshotFailure] = {
     if (newDF.columns.toSet != snapshotDF.columns.toSet) {
-      val nc: String = newDF.columns.toSet.diff(snapshotDF.columns.toSet).toArray.mkString(", ")
-      val oc: String = snapshotDF.columns.toSet.diff(newDF.columns.toSet).toArray.mkString(", ")
-      logger.error("Non-overlapping columns.")
-      logger.info("Columns in passed dataframe missing in snapshot: " + nc)
-      logger.info("Columns in snapshot missing in passed dataframe: " + oc)
-      return false
+      return Some(MismatchedColumns(newDF.columns, snapshotDF.columns))
     }
     if (newDF.isEmpty) {
-      logger.error("New dataframe is empty. Cannot snapshot an empty dataframe.")
-      return false
+      return Some(EmptyData())
     }
     val hd :: tail = sortBy
     val newSorted = newDF.sort(hd, tail: _*).withColumn("index", monotonically_increasing_id())
@@ -69,16 +59,17 @@ trait SnapshotTest extends LazyLogging {
           .where(col(s"new.$colname") =!= col(s"snap.$colname"))
       ).filter(dataset => dataset.count() > 0)
     if (mismatchedCols.length > 0) {
-      logger.error("ERROR: snapshot matching failure")
-      logger.info("New data: ")
-      newSorted.show(100)
-      logger.info("Snapshot: ")
-      snapshotSorted.show(100)
-      logger.info("Mismatched data: ")
       mismatchedCols.foreach(dataset => dataset.show())
-      return false
+      return Some(MismatchedData())
     }
-    true
+    None
+  }
+
+  private def matchSnapshotFailure(snapshotFailure: Option[SnapshotFailure]): Boolean = snapshotFailure match {
+    case None => true
+    case Some(sf: SnapshotFailure) =>
+      logger.info(sf.message)
+      false
   }
 
   def assertSnapshot(snapshotName: String, dataFrame: DataFrame, sortBy: List[String]): Assertion = {
@@ -87,7 +78,7 @@ trait SnapshotTest extends LazyLogging {
         val snapshot = sparkSession.read.parquet(snapshotPath(snapshotName))
         compareSnapshot(dataFrame, snapshot, sortBy)
       } match {
-        case Success(b) => b
+        case Success(b) => matchSnapshotFailure(b)
         case Failure(ex) if ex.getMessage.contains("Path does not exist") =>
           logger.info("Snapshot does not exist, creating it.")
           saveSnapshot(snapshotName, dataFrame)
@@ -105,7 +96,7 @@ trait SnapshotTest extends LazyLogging {
         val snapshot2 = sparkSession.read.schema(schema).parquet(snapshotPath(snapshotName))
         compareSnapshot(snapshot2, snapshot, sortBy)
       } match {
-        case Success(b) => b
+        case Success(b) => matchSnapshotFailure(b)
         case Failure(ex) =>
           logger.error(ex.getMessage)
           false
