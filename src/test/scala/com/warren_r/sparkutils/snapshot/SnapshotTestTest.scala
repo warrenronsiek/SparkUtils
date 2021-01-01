@@ -1,9 +1,9 @@
-package com.warren_r.sparkutils
+package com.warren_r.sparkutils.snapshot
 
 import org.apache.spark.SparkConf
-import org.apache.spark.sql.{DataFrame, SQLContext, SparkSession}
-import org.scalatest.flatspec.AnyFlatSpec
 import org.apache.spark.sql.types.{IntegerType, StringType, StructField, StructType}
+import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.scalatest.flatspec.AnyFlatSpec
 
 
 class SnapshotTestTest extends AnyFlatSpec with SnapshotTest {
@@ -25,7 +25,7 @@ class SnapshotTestTest extends AnyFlatSpec with SnapshotTest {
 
   "snapshot path creation" should "create correct paths" in {
     assert(snapshotPath("testpath") ==
-      List(System.getProperty("user.dir"), "src", "test", "resources", "com", "warren_r", "sparkutils",
+      List(System.getProperty("user.dir"), "src", "test", "resources", "com", "warren_r", "sparkutils", "snapshot",
         "snapshottesttest", "testpath").mkString("/"))
   }
 

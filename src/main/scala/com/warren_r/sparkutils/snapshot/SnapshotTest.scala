@@ -1,15 +1,15 @@
-package com.warren_r.sparkutils
+package com.warren_r.sparkutils.snapshot
 
-import java.io.File
-import com.warren_r.sparkutils.SnapshotFailures._
 import com.typesafe.scalalogging.LazyLogging
+import com.warren_r.sparkutils.snapshot.SnapshotFailures._
 import org.apache.spark.SparkConf
-import org.apache.spark.sql._
 import org.apache.spark.sql.functions.{col, monotonically_increasing_id}
 import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql._
 import org.scalatest.Assertion
-import org.scalatest.Assertions._
+import org.scalatest.Assertions.assert
 
+import java.io.File
 import scala.reflect.io.Directory
 import scala.util.{Failure, Success, Try}
 

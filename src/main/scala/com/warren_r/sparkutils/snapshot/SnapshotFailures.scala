@@ -1,4 +1,4 @@
-package com.warren_r.sparkutils
+package com.warren_r.sparkutils.snapshot
 
 object SnapshotFailures {
 
