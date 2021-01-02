@@ -17,11 +17,12 @@ jobs:
           keys:
             - v1-dependencies-{{ checksum "build.sbt" }}
             - v1-dependencies-
-      - run: cat /dev/null | sbt test:compile
+      - run: sbt test:compile
       - save_cache:
           paths:
             - ~/.m2
           key: v1-dependencies--{{ checksum "build.sbt" }}
-      - run: cat /dev/null | sbt test:test
+      - run: sbt clean coverage test
+      - run: sbt coverageReport
       - codecov/upload:
-          file: /home/circleci/repo/target/test-reports/TEST-com.warren_r.sparkutils.snapshot.SnapshotTestTest.xml
+          file: /home/circleci/repo/target/scala-2.12/scoverage-report/scoverage.xml
