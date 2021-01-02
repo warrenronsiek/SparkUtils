@@ -1,4 +1,8 @@
 version: 2.1
+
+orbs:
+  codecov: codecov/codecov@1.0.2
+
 jobs:
   build:
     docker:
@@ -19,3 +23,5 @@ jobs:
             - ~/.m2
           key: v1-dependencies--{{ checksum "build.sbt" }}
       - run: cat /dev/null | sbt test:test
+      - codecov/upload:
+          file: ~/repo/target/test-reports/TEST-com.warren_r.sparkutils.snapshot.SnapshotTestTest.xml

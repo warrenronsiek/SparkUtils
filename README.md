@@ -1,3 +1,4 @@
+[![warrenronsiek](https://circleci.com/gh/warrenronsiek/SparkUtils.svg?style=svg)](<LINK>)
 # SparkUtils
 Generic spark utilities. Right now only has dataframe SnapshotTest 
 util, but more stuff to come.
