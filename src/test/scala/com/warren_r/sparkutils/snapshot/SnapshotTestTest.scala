@@ -56,6 +56,14 @@ class SnapshotTestTest extends AnyFlatSpec with SnapshotTest {
     assert(comparison.message == mismatch.message)
   }
 
+  it should "detect joincol diffs" in {
+    val mismatchedJoin: DataFrame = sparkSession.read.schema(schema).option("header", "true")
+      .csv(getClass.getResource("/mismatchedJoin.csv").getPath)
+    assertResult(Some(MismatchedData())) {
+      compareSnapshot(mismatchedJoin, goodData, "id")
+    }
+  }
+
   it should "detect empty data" in {
     val emptyData: DataFrame = sparkSession.read.schema(schema).option("header", "true")
       .csv(getClass.getResource("/emptyData.csv").getPath)
