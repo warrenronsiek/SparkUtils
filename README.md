@@ -1,6 +1,6 @@
 # SparkUtils
 Generic spark utilities. Right now only has dataframe SnapshotTest 
-util, but will add more stuff as necessary.
+util, but more stuff to come.
 
 ## SnapshotTest
 Snapshot tests store copies of data in parquet in your `test/resources` dir.
@@ -8,8 +8,8 @@ When calling the `assertSnapshot("snapName", newDf, "joinCol1", "joinCol2")`
 the library will read the stored snapshot as a dataframe, join it to the provided
 dataframe on the joinColumns, and then test the dataframes for equality
 along every column. If it finds any diffs, it will print them and fail 
-the test. If it doesn't find any diffs, or if a snapshot doesn't exist,
-it will succeed. 
+the test. If it doesn't find any diffs, it will succeed. If there is no 
+stored snapshot in the `test/resources` that matches, it will create a new one.
 
 ### Example Usage
 ```scala
