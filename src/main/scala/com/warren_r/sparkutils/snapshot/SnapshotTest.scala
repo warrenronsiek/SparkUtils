@@ -108,23 +108,25 @@ trait SnapshotTest extends LazyLogging {
     )
   }
 
+  private[snapshot] def schemaValidation(snapshotName: String, schema:StructType): Boolean = {
+    Try {
+      val snapshot: DataFrame = sparkSession.read.parquet(snapshotPath(snapshotName))
+      // the map here is because parquet doesn't seem to store the nullable component of StructFields
+      snapshot.schema.map(sf => (sf.name, sf.dataType)) == schema.map(sf => (sf.name, sf.dataType))
+    } match {
+      case Success(b) => b
+      case Failure(ex) =>
+        logger.error(ex.getMessage)
+        false
+    }
+  }
+
   /**
    * Asserts that the passed schema matches that of the snapshot.
    * @param snapshotName the name of the snapshot's schema you want to compare agaisnt
    * @param schema the schema you want to validate against the snapshot
    * @return
    */
-  def assertSchema(snapshotName: String, schema: StructType): Assertion = {
-    assert(
-      Try {
-        val snapshot: DataFrame = sparkSession.read.parquet(snapshotPath(snapshotName))
-        snapshot.schema == schema
-      } match {
-        case Success(b) => b
-        case Failure(ex) =>
-          logger.error(ex.getMessage)
-          false
-      }
-    )
-  }
+  def assertSchema(snapshotName: String, schema: StructType): Assertion =
+    assert(schemaValidation(snapshotName, schema))
 }
