@@ -30,6 +30,10 @@ class SnapshotTestTest extends AnyFlatSpec with SnapshotTest {
         "snapshottesttest", "testpath").mkString("/"))
   }
 
+  "schema testing" should "validate schemas" in {
+    assertSchema("gooddata", schema)
+  }
+
   "snapshot testing" should "validate snapshots" in {
     assertSnapshot("gooddata", goodData, List("id"))
   }
