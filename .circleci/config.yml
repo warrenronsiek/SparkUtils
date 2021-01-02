@@ -24,4 +24,4 @@ jobs:
           key: v1-dependencies--{{ checksum "build.sbt" }}
       - run: cat /dev/null | sbt test:test
       - codecov/upload:
-          file: ~/repo/target/test-reports/TEST-com.warren_r.sparkutils.snapshot.SnapshotTestTest.xml
+          file: target/test-reports/TEST-com.warren_r.sparkutils.snapshot.SnapshotTestTest.xml

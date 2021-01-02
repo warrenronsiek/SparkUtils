@@ -24,7 +24,7 @@ trait SnapshotTest extends LazyLogging {
    * @param snapshotName whatever you want to call the snapshot, should be unique amongst snapshots in the same testsuite
    * @return the fully qualified path of the snapshot
    */
-  private[sparkutils] def snapshotPath(snapshotName: String): String = {
+  private[snapshot] def snapshotPath(snapshotName: String): String = {
     val testResources: String = List(System.getProperty("user.dir"), "src", "test", "resources").mkString("/")
     val resourcePath: String = this.getClass.getName.toLowerCase().replace('.', '/')
     Array(testResources, resourcePath, snapshotName).mkString("/")
@@ -35,7 +35,7 @@ trait SnapshotTest extends LazyLogging {
    * @param snapshotName whatever you want to call the snapshot, should be unique amongst snapshots in the same testsuite
    * @param dataFrame the dataframe to be saved as a snapshot
    */
-  private[sparkutils] def saveSnapshot(snapshotName: String, dataFrame: DataFrame): Unit = {
+  private[snapshot] def saveSnapshot(snapshotName: String, dataFrame: DataFrame): Unit = {
     val path: String = snapshotPath(snapshotName)
     val dir = new Directory(new File(path))
     if (dir.exists) {
@@ -44,7 +44,7 @@ trait SnapshotTest extends LazyLogging {
     dataFrame.write.parquet(path)
   }
 
-  private[sparkutils] def compareSnapshot(newDF: DataFrame, snapshotDF: DataFrame, joinOn: String*): Option[SnapshotFailure] =
+  private[snapshot] def compareSnapshot(newDF: DataFrame, snapshotDF: DataFrame, joinOn: String*): Option[SnapshotFailure] =
     compareSnapshot(newDF, snapshotDF, joinOn.toList)
 
   /**
@@ -55,7 +55,7 @@ trait SnapshotTest extends LazyLogging {
    * @param joinOn a set of columns to join the snapshot to the passed newDF
    * @return an optional failure
    */
-  private[sparkutils] def compareSnapshot(newDF: DataFrame, snapshotDF: DataFrame, joinOn: List[String]): Option[SnapshotFailure] = {
+  private[snapshot] def compareSnapshot(newDF: DataFrame, snapshotDF: DataFrame, joinOn: List[String]): Option[SnapshotFailure] = {
     if (newDF.columns.toSet != snapshotDF.columns.toSet) {
       return Some(MismatchedColumns(newDF.columns, snapshotDF.columns))
     }
