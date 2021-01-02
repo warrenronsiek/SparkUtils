@@ -1,5 +1,6 @@
 package com.warren_r.sparkutils.snapshot
 
+import com.warren_r.sparkutils.snapshot.SnapshotFailures.{EmptyData, MismatchedColumns, MismatchedData}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.types.{IntegerType, StringType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, SparkSession}
@@ -20,8 +21,8 @@ class SnapshotTestTest extends AnyFlatSpec with SnapshotTest {
     StructField("val1", StringType, nullable = false),
     StructField("val2", IntegerType, nullable = false)
   ))
-  val goodDf: DataFrame = sparkSession.read.schema(schema).csv(getClass.getResource("/testdata.csv").getPath)
-  val badDf: DataFrame = sparkSession.read.schema(schema).csv(getClass.getResource("/badtestdata.csv").getPath)
+  val goodData: DataFrame = sparkSession.read.schema(schema).option("header", "true")
+    .csv(getClass.getResource("/testdata.csv").getPath)
 
   "snapshot path creation" should "create correct paths" in {
     assert(snapshotPath("testpath") ==
@@ -30,10 +31,36 @@ class SnapshotTestTest extends AnyFlatSpec with SnapshotTest {
   }
 
   "snapshot testing" should "validate snapshots" in {
-    assertSnapshot("gooddata", goodDf, List("id"))
+    assertSnapshot("gooddata", goodData, List("id"))
   }
 
-//  it should "invalidate invalid snapshots" in {
-//    assert(!compareSnapshot(badDf, goodDf, List("id")))
-//  }
+  it should "detect mismatched data" in {
+    val mismatchedData: DataFrame = sparkSession.read.schema(schema).option("header", "true")
+      .csv(getClass.getResource("/mismatchedData.csv").getPath)
+    assertResult(Some(MismatchedData())) {
+      compareSnapshot(mismatchedData, goodData, "id")
+    }
+  }
+
+  it should "detect mismatched columns" in {
+    val badSchema: StructType = StructType(Array(
+      StructField("id", IntegerType, nullable = false),
+      StructField("val1", StringType, nullable = false),
+      StructField("val2", IntegerType, nullable = false),
+      StructField("val3", StringType, nullable = false)
+    ))
+    val mismatchedData: DataFrame = sparkSession.read.schema(badSchema).option("header", "true")
+      .csv(getClass.getResource("/mismatchedColumns.csv").getPath)
+    val mismatch = MismatchedColumns(mismatchedData.columns, goodData.columns)
+    val comparison = compareSnapshot(mismatchedData, goodData, "id").get
+    assert(comparison.message == mismatch.message)
+  }
+
+  it should "detect empty data" in {
+    val emptyData: DataFrame = sparkSession.read.schema(schema).option("header", "true")
+      .csv(getClass.getResource("/emptyData.csv").getPath)
+    assertResult(Some(EmptyData())) {
+      compareSnapshot(emptyData, goodData, "id")
+    }
+  }
 }

@@ -36,6 +36,9 @@ trait SnapshotTest extends LazyLogging {
     dataFrame.write.parquet(path)
   }
 
+  private[sparkutils] def compareSnapshot(newDF: DataFrame, snapshotDF: DataFrame, sortBy: String*): Option[SnapshotFailure] =
+    compareSnapshot(newDF, snapshotDF, sortBy.toList)
+
   private[sparkutils] def compareSnapshot(newDF: DataFrame, snapshotDF: DataFrame, sortBy: List[String]): Option[SnapshotFailure] = {
     if (newDF.columns.toSet != snapshotDF.columns.toSet) {
       return Some(MismatchedColumns(newDF.columns, snapshotDF.columns))
