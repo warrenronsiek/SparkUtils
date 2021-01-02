@@ -1,5 +1,4 @@
-[![warrenronsiek](https://circleci.com/gh/warrenronsiek/SparkUtils.svg?style=svg)](<LINK>)
-# SparkUtils
+# SparkUtils [![warrenronsiek](https://circleci.com/gh/warrenronsiek/SparkUtils.svg?style=shield)](<LINK>) [![codecov](https://codecov.io/gh/warrenronsiek/SparkUtils/branch/main/graph/badge.svg?token=SWQAVYT12Z)](https://codecov.io/gh/warrenronsiek/SparkUtils)
 Generic spark utilities. Right now only has dataframe SnapshotTest 
 util, but more stuff to come.
 
