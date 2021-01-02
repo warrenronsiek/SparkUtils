@@ -27,7 +27,9 @@ class SnapshotTestTest extends AnyFlatSpec with SnapshotTest {
     .config(sparkConf)
     .getOrCreate()
   
-  val df = sparkSession.sparkContext.parallelize(Seq((1, "a"), (2, "b")))
+  val df: DataFrame = sparkSession.createDataFrame(
+    sparkSession.sparkContext.parallelize(Seq((1, "a"), (2, "b")))
+  )
   
   "snapshots" should "pass" in {
     assertSnapshot("demoSnapShot", df, "_c1")

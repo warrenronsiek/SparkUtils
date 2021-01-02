@@ -59,11 +59,14 @@ trait SnapshotTest extends LazyLogging {
     None
   }
 
-  def assertSnapshot(snapshotName: String, dataFrame: DataFrame, sortBy: List[String]): Assertion = {
+  def assertSnapshot(snapshotName: String, dataFrame: DataFrame, joinOn: String*): Assertion =
+    assertSnapshot(snapshotName, dataFrame, joinOn.toList)
+
+  def assertSnapshot(snapshotName: String, dataFrame: DataFrame, joinOn: List[String]): Assertion = {
     assert(
       Try {
         val snapshot = sparkSession.read.parquet(snapshotPath(snapshotName))
-        compareSnapshot(dataFrame, snapshot, sortBy)
+        compareSnapshot(dataFrame, snapshot, joinOn)
       } match {
         case Success(None) => true
         case Success(Some(snapFailure)) =>
