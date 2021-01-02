@@ -76,7 +76,8 @@ trait SnapshotTest extends LazyLogging {
         case Failure(ex) =>
           logger.error(ex.getMessage)
           false
-      })
+      }
+    )
   }
 
   def assertSchema(snapshotName: String, schema: StructType): Assertion = {
