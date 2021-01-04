@@ -4,6 +4,7 @@ import com.typesafe.scalalogging.LazyLogging
 import com.warren_r.sparkutils.snapshot.SnapshotFailures._
 import org.apache.spark.SparkConf
 import org.apache.spark.sql._
+import org.apache.spark.sql.catalyst.ScalaReflection.Schema
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.types.StructType
 import org.scalatest.Assertion
@@ -108,13 +109,18 @@ trait SnapshotTest extends LazyLogging {
     )
   }
 
-  private[snapshot] def schemaValidation(snapshotName: String, schema:StructType): Boolean = {
+  private[snapshot] def schemaValidation(snapshotName: String, dataFrame: DataFrame, schema: StructType): Boolean = {
     Try {
       val snapshot: DataFrame = sparkSession.read.parquet(snapshotPath(snapshotName))
       // the map here is because parquet doesn't seem to store the nullable component of StructFields
-      snapshot.schema.map(sf => (sf.name, sf.dataType)) == schema.map(sf => (sf.name, sf.dataType))
+      (snapshot.schema.map(sf => (sf.name, sf.dataType)) == schema.map(sf => (sf.name, sf.dataType))) &&
+        (dataFrame.schema.map(sf => (sf.name, sf.dataType)) == schema.map(sf => (sf.name, sf.dataType)))
     } match {
       case Success(b) => b
+      case Failure(ex) if ex.getMessage.contains("Path does not exist") =>
+        logger.info("Snapshot does not exist, creating it.")
+        saveSnapshot(snapshotName, dataFrame)
+        dataFrame.schema.map(sf => (sf.name, sf.dataType)) == schema.map(sf => (sf.name, sf.dataType))
       case Failure(ex) =>
         logger.error(ex.getMessage)
         false
@@ -127,6 +133,6 @@ trait SnapshotTest extends LazyLogging {
    * @param schema the schema you want to validate against the snapshot
    * @return
    */
-  def assertSchema(snapshotName: String, schema: StructType): Assertion =
-    assert(schemaValidation(snapshotName, schema))
+  def assertSchema(snapshotName: String, dataFrame: DataFrame, schema: StructType): Assertion =
+    assert(schemaValidation(snapshotName, dataFrame, schema))
 }

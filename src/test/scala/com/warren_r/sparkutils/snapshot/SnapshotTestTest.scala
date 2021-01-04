@@ -16,7 +16,7 @@ class SnapshotTestTest extends AnyFlatSpec with SnapshotTest {
     .config(sparkConf)
     .getOrCreate()
 
-  val schema: StructType = StructType(Array(
+  val goodSchema: StructType = StructType(Array(
     StructField("id", IntegerType, nullable = false),
     StructField("val1", StringType, nullable = false),
     StructField("val2", IntegerType, nullable = false)
@@ -27,8 +27,10 @@ class SnapshotTestTest extends AnyFlatSpec with SnapshotTest {
     StructField("val2", IntegerType, nullable = false),
     StructField("val3", StringType, nullable = false)
   ))
-  val goodData: DataFrame = sparkSession.read.schema(schema).option("header", "true")
+  val goodData: DataFrame = sparkSession.read.schema(goodSchema).option("header", "true")
     .csv(getClass.getResource("/testdata.csv").getPath)
+  val badDataExtraColumn: DataFrame = sparkSession.read.schema(badSchema).option("header", "true")
+    .csv(getClass.getResource("/mismatchedColumns.csv").getPath)
 
   "snapshot path creation" should "create correct paths" in {
     assert(snapshotPath("testpath") ==
@@ -37,11 +39,15 @@ class SnapshotTestTest extends AnyFlatSpec with SnapshotTest {
   }
 
   "schema testing" should "validate schemas" in {
-    assertSchema("gooddata", schema)
+    assertSchema("gooddata", goodData, goodSchema)
   }
 
   it should "invalidate invalid schemas" in {
-    assert(!schemaValidation("gooddata", badSchema))
+    assert(!schemaValidation("gooddata", goodData, badSchema))
+  }
+
+  it should "detect bad data" in {
+    assert(!schemaValidation("goodData", badDataExtraColumn, goodSchema))
   }
 
   "snapshot testing" should "validate snapshots" in {
@@ -49,7 +55,7 @@ class SnapshotTestTest extends AnyFlatSpec with SnapshotTest {
   }
 
   it should "detect mismatched data" in {
-    val mismatchedData: DataFrame = sparkSession.read.schema(schema).option("header", "true")
+    val mismatchedData: DataFrame = sparkSession.read.schema(goodSchema).option("header", "true")
       .csv(getClass.getResource("/mismatchedData.csv").getPath)
     assertResult(Some(MismatchedData())) {
       compareSnapshot(mismatchedData, goodData, "id")
@@ -57,15 +63,13 @@ class SnapshotTestTest extends AnyFlatSpec with SnapshotTest {
   }
 
   it should "detect mismatched columns" in {
-    val mismatchedData: DataFrame = sparkSession.read.schema(badSchema).option("header", "true")
-      .csv(getClass.getResource("/mismatchedColumns.csv").getPath)
-    val mismatch = MismatchedColumns(mismatchedData.columns, goodData.columns)
-    val comparison = compareSnapshot(mismatchedData, goodData, "id").get
+    val mismatch = MismatchedColumns(badDataExtraColumn.columns, goodData.columns)
+    val comparison = compareSnapshot(badDataExtraColumn, goodData, "id").get
     assert(comparison.message == mismatch.message)
   }
 
   it should "detect joincol diffs" in {
-    val mismatchedJoin: DataFrame = sparkSession.read.schema(schema).option("header", "true")
+    val mismatchedJoin: DataFrame = sparkSession.read.schema(goodSchema).option("header", "true")
       .csv(getClass.getResource("/mismatchedJoin.csv").getPath)
     assertResult(Some(MismatchedData())) {
       compareSnapshot(mismatchedJoin, goodData, "id")
@@ -73,7 +77,7 @@ class SnapshotTestTest extends AnyFlatSpec with SnapshotTest {
   }
 
   it should "detect empty data" in {
-    val emptyData: DataFrame = sparkSession.read.schema(schema).option("header", "true")
+    val emptyData: DataFrame = sparkSession.read.schema(goodSchema).option("header", "true")
       .csv(getClass.getResource("/emptyData.csv").getPath)
     assertResult(Some(EmptyData())) {
       compareSnapshot(emptyData, goodData, "id")

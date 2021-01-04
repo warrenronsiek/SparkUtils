@@ -1,14 +1,16 @@
 package com.warren_r.sparkutils.snapshot
 
-object SnapshotFailures {
+private[snapshot] object SnapshotFailures {
 
   abstract class SnapshotFailure {
     def message: String
   }
 
   case class MismatchedColumns(newCols: Array[String], snapCols: Array[String]) extends SnapshotFailure {
-    def message: String = "Cols in new data, not in snapshot: " + newCols.toSet.diff(snapCols.toSet).toArray.mkString(", ") +
-      "\n cols in snapshot, not in new data: " + snapCols.toSet.diff(newCols.toSet).toArray.mkString(", ")
+    def message: String = "cols in new data, not in snapshot:\n" +
+      newCols.toSet.diff(snapCols.toSet).toArray.mkString(", ") +
+      "\ncols in snapshot, not in new data:\n" +
+      snapCols.toSet.diff(newCols.toSet).toArray.mkString(", ")
   }
 
   case class EmptyData() extends SnapshotFailure {
