@@ -19,4 +19,4 @@ developers := List(Developer(
 credentials += Credentials("Sonatype Nexus Repository Manager",
   "s01.oss.sonatype.org",
   "warrenronsiek",
-  "7pR_kUGtp!jFe4kRsV")
+  sys.env.getOrElse("SONATYPE_PASSWORD", ""))

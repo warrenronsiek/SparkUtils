@@ -1,8 +1,5 @@
 version: 2.1
 
-orbs:
-  codecov: codecov/codecov@1.0.2
-
 jobs:
   build:
     docker:
@@ -22,7 +19,4 @@ jobs:
           paths:
             - ~/.m2
           key: v1-dependencies--{{ checksum "build.sbt" }}
-      - run: sbt clean coverage test
-      - run: sbt coverageReport
-      - codecov/upload:
-          file: /home/circleci/repo/target/scala-2.12/scoverage-report/scoverage.xml
+      - run: sbt clean test

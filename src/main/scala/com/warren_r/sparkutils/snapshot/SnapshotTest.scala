@@ -4,10 +4,10 @@ import com.typesafe.scalalogging.LazyLogging
 import com.warren_r.sparkutils.snapshot.SnapshotFailures._
 import org.apache.spark.SparkConf
 import org.apache.spark.sql._
-import org.apache.spark.sql.catalyst.ScalaReflection.Schema
-import org.apache.spark.sql.functions.col
+import org.apache.spark.sql.functions.{col, udf}
 import org.apache.spark.sql.types.StructType
 import org.scalatest.Assertion
+import org.apache.spark.sql.types.{MapType, StructType}
 import org.scalatest.Assertions.assert
 
 import java.io.File
@@ -31,6 +31,9 @@ trait SnapshotTest extends LazyLogging {
     Array(testResources, resourcePath, snapshotName).mkString("/")
   }
 
+  private[snapshot] val mapEqual = udf((col1: Map[Any, Any], col2: Map[Any, Any]) => col1 == col2)
+
+
   /**
    * If the snapshot doesn't exist, recursively generate container directories and then write the snapshot.
    * @param snapshotName whatever you want to call the snapshot, should be unique amongst snapshots in the same testsuite
@@ -51,9 +54,10 @@ trait SnapshotTest extends LazyLogging {
   /**
    * Joins the snapshot to the passed new data, and then does a column-by-column diff, and prints the results. Returns
    * a case class representing the failure type that gets translated later into a failed assertion/error.
-   * @param newDF the dataframe to compare to the snapshot
+   *
+   * @param newDF      the dataframe to compare to the snapshot
    * @param snapshotDF the snapshot as read from the resources directory
-   * @param joinOn a set of columns to join the snapshot to the passed newDF
+   * @param joinOn     a set of columns to join the snapshot to the passed newDF
    * @return an optional failure
    */
   private[snapshot] def compareSnapshot(newDF: DataFrame, snapshotDF: DataFrame, joinOn: List[String]): Option[SnapshotFailure] = {
@@ -66,11 +70,18 @@ trait SnapshotTest extends LazyLogging {
     val joined = snapshotDF.alias("snap").join(newDF.alias("new"), joinOn, "outer").cache()
     val mismatchedCols: Array[Dataset[Row]] = newDF.columns.toSet.union(snapshotDF.columns.toSet).toArray
       .filter(colname => !joinOn.toSet.contains(colname))
-      .map(colname =>
-        joined
-          .select(col(s"snap.$colname") :: col(s"new.$colname") :: joinOn.map(s => col(s)).reverse: _*)
-          .where(!(col(s"new.$colname") <=> col(s"snap.$colname")))
-      ).filter(dataset => dataset.count() > 0)
+      .map(colname => {
+        snapshotDF.schema.filter(_.name == colname).head.dataType match {
+          case MapType(_, _, _) =>
+            joined
+              .select(col(s"snap.$colname") :: col(s"new.$colname") :: joinOn.map(s => col(s)).reverse: _*)
+              .where(!mapEqual(col(s"new.$colname"), col(s"snap.$colname")))
+          case _ =>
+            joined
+              .select(col(s"snap.$colname") :: col(s"new.$colname") :: joinOn.map(s => col(s)).reverse: _*)
+              .where(!(col(s"new.$colname") <=> col(s"snap.$colname")))
+        }
+      }).filter(dataset => dataset.count() > 0)
     if (mismatchedCols.length > 0) {
       mismatchedCols.foreach(dataset => dataset.show())
       return Some(MismatchedData())
