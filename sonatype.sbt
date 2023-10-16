@@ -16,7 +16,8 @@ developers := List(Developer(
   email = "warrenronsiek@gmail.com",
   url = url("https://github.com/warrenronsiek"))
 )
-credentials += Credentials("Sonatype Nexus Repository Manager",
-  "s01.oss.sonatype.org",
-  "warrenronsiek",
-  sys.env.getOrElse("SONATYPE_PASSWORD", ""))
+// needs to be put in ~/.sbt/(sbt version)/sonatype.sbt
+// credentials += Credentials("Sonatype Nexus Repository Manager",
+//  "oss.sonatype.org",
+//  "warrenronsiek",
+//  sys.env.getOrElse("SONATYPE_PASSWORD", ""))
