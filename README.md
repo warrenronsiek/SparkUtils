@@ -36,3 +36,12 @@ class SnapshotTestTest extends AnyFlatSpec with SnapshotTest {
   }
 }
 ```
+
+### publishing new verions
+
+```sh
+sbt clean
+sbt publishSigned 
+# if this gives an error, you might have to run `export GPG_TTY=$(tty)` and then re-run. There should be a stdin opening for you to put in a password
+sbt sonatypeBundleRelease
+```
